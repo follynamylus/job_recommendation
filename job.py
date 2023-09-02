@@ -66,13 +66,13 @@ if option.lower() == "single" :
                 highest certificate obtained as {cert} should be {offer_rf} for the job. """)
     
     tab_2.success("Predict Probabilities for the algorithms")
-    tab_2.write(f'probability of getting the Job is {model_rf.predict_proba(data)[:,1] * 100} %')
+    tab_2.write(f'Random Forest predicts probability of getting the Job as {model_rf.predict_proba(data)[:,1] * 100} %')
     
     tab_1.success("Support Vector Machine Prediction")
     df['Predict_sv'] = [pred_sv]
     tab_1.write(f"""The applicant with name {name}, ID {num}, whose age is {age}, Scores {score}, with the 
                 highest certificate obtained as {cert} is {offer_sv} for the job""")
-    tab_2.write(f'probability of getting the Job is {model_sv.predict_proba(data)[:,1] * 100} %')
+    tab_2.write(f'Support Vector Machine predicts probability of getting the Job as {model_sv.predict_proba(data)[:,1] * 100} %')
     @st.cache_data 
 
     def convert_df(df): 
