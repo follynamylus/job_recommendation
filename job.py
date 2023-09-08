@@ -73,8 +73,25 @@ if option.lower() == "single" :
     tab_1.write(f"""The applicant with name {name}, ID {num}, whose age is {age}, Scores {score}, with the 
                 highest certificate obtained as {cert} is {offer_sv} for the job""")
     tab_2.write(f'Support Vector Machine predicts probability of getting the Job as {model_sv.predict_proba(data)[:,1] * 100} %')
-    @st.cache_data 
+    proba_lr = model_rf.predict_proba(data)
+    fig = sns.barplot(x=np.arange(len(proba_lr[0])), y=proba_lr[0])
+    plt.xticks(np.arange(len(proba_lr[0])), labels=[f"Class {i}" for i in range(len(proba_lr[0]))])
+    plt.xlabel('Class')
+    plt.ylabel('Probability')
+    plt.title(f'Predicted Probabilities for Random Forest')
+    plt.savefig('predicted_probabilities.png')
+    tab_1.pyplot()
 
+    proba_sv = model_sv.predict_proba(data)
+    fig = sns.barplot(x=np.arange(len(proba_sv[0])), y=proba_sv[0])
+    plt.xticks(np.arange(len(proba_sv[0])), labels=[f"Class {i}" for i in range(len(proba_sv[0]))])
+    plt.xlabel('Class')
+    plt.ylabel('Probability')
+    plt.title(f'Predicted Probabilities for Support Vector')
+    plt.savefig('predicted_probabilities.png')
+    tab_1.pyplot()
+
+    @st.cache_data 
     def convert_df(df): 
         return df.to_csv().encode('utf-8')
     csv = convert_df(df)
