@@ -13,7 +13,6 @@ tab_1,tab_2,tab_3 = st.tabs(['VIEW PREDICTION','DATAFRAME AND DOWNLOAD','ADMIN']
 option = st.sidebar.selectbox("Choose the type of prediction to perform",["Single","Multiple"])
 
 model_rf = pickle.load(open("rf_model", 'rb'))
-model_sv = pickle.load(open("sv_model", 'rb'))
 
 if option.lower() == "single" :
     st.sidebar.title("Data Input")
@@ -22,12 +21,17 @@ if option.lower() == "single" :
     age = st.sidebar.number_input("Input the Applicants Age",18,70)
     score = st.sidebar.number_input("Input the Applicants score",0,100)
     cert = st.sidebar.selectbox("Select the Day",["HND","BSC","MSC","PHD"])
+    exp = st.sidebar.number_input("Input the Applicants years of experience",0,5)
+    skill = st.sidebar.number_input("Input the amount of Applicants skills known",1,4)
+    rows = st.sidebar.number_input("Input amount of recommendations to display",1,50)
     df = pd.DataFrame()
     df['Name'] = [name]
     df['ID'] = [num]
     df['Age'] = [age]
     df['Score'] = [score]
     df["Certificate"] = [cert]
+    df['Experience'] = exp
+    df['Num of skills'] = skill
     data = pd.DataFrame()
     data['Age'] = df["Age"]
     data['Score'] = df["Score"]
@@ -41,9 +45,9 @@ if option.lower() == "single" :
     elif cert == "PHD" :
         certificate = '4'
     data['Certificate'] = certificate
-    
+    data['Experience'] = df['Experience']
+    data['Num of skills'] = df['Num of skills']
     pred_rf = model_rf.predict(data)
-    pred_sv = model_sv.predict(data)
     
     tab_1.success("Prediction Dataframe")
 
@@ -52,13 +56,11 @@ if option.lower() == "single" :
     else :
         offer_rf = "Rejected"
 
-    df['Predict_rf'] = [offer_rf]
+    df['Probability_acceptance'] = model_rf.predict_proba(data)[:,1] * 100
 
-    if pred_sv == 1 :
-        offer_sv = "Accepted"
-    else :
-        offer_sv = "Rejected"
-    df['Predict_sv'] = [offer_sv]
+    df['Predict_rf'] = [offer_rf]
+    
+
     tab_1.write(df)
     
     tab_1.success("Random Forest Prediction")
@@ -68,25 +70,12 @@ if option.lower() == "single" :
     tab_2.success("Predict Probabilities for the algorithms")
     tab_2.write(f'Random Forest predicts probability of getting the Job as {model_rf.predict_proba(data)[:,1] * 100} %')
     
-    tab_1.success("Support Vector Machine Prediction")
-
-    tab_1.write(f"""The applicant with name {name}, ID {num}, whose age is {age}, Scores {score}, with the 
-                highest certificate obtained as {cert} is {offer_sv} for the job""")
-    tab_2.write(f'Support Vector Machine predicts probability of getting the Job as {model_sv.predict_proba(data)[:,1] * 100} %')
     proba_lr = model_rf.predict_proba(data)
     fig = sns.barplot(x=np.arange(len(proba_lr[0])), y=proba_lr[0])
     plt.xticks(np.arange(len(proba_lr[0])), labels=[f"Class {i}" for i in range(len(proba_lr[0]))])
     plt.xlabel('Class')
     plt.ylabel('Probability')
     plt.title(f'Predicted Probabilities for Random Forest')
-    tab_1.pyplot()
-
-    proba_sv = model_sv.predict_proba(data)
-    fig = sns.barplot(x=np.arange(len(proba_sv[0])), y=proba_sv[0])
-    plt.xticks(np.arange(len(proba_sv[0])), labels=[f"Class {i}" for i in range(len(proba_sv[0]))])
-    plt.xlabel('Class')
-    plt.ylabel('Probability')
-    plt.title(f'Predicted Probabilities for Support Vector')
     tab_1.pyplot()
 
     @st.cache_data 
@@ -96,7 +85,7 @@ if option.lower() == "single" :
     tab_2.success("Print Result as CSV file")
     tab_2.download_button("Download",csv,"Prediction.csv",'text/csv')
 
-    dfs = df[(df["Predict_rf"] == "Accepted") & (df["Predict_sv"] == "Accepted")]
+    dfs = df[df["Predict_rf"] == "Accepted"]
     conn = sqlite3.connect("user.db")
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS user(id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -116,8 +105,10 @@ if option.lower() == "single" :
                     dt = pd.read_csv("dframe.csv")
                     dts = pd.concat([dt, dfs], axis=0)
                     dts.drop_duplicates(inplace=True)
+                    ds = dts.sort_values(by=['Probability_acceptance','Score','Age'], ascending=False)
+
                     dts.to_csv("dframe.csv", header=False, index=False, mode= 'a')
-                    tab_3.write(dts)
+                    tab_3.write(ds.head(rows))
                 else :
                     dfs.to_csv("dframe.csv", index=False)
                     tab_3.write(dfs)
@@ -136,6 +127,7 @@ if option.lower() == "single" :
 
 else :
     file = st.sidebar.file_uploader("Input File")
+    rows = st.sidebar.number_input("Input amount of recommendations to display",1,50)
     if file == None :
         st.write("A file should be uploaded")
     else :
@@ -153,33 +145,20 @@ else :
         X['Certificate'] = df["Certificate"]
 
         pred_rf = model_rf.predict(df)
-        pred_sv = model_sv.predict(df)
 
         pred_rf = model_rf.predict(X)
         pred_probarf = model_rf.predict_proba(X)[:,1]*100
         df['proba_rf'] = pred_probarf
         df['pred_rf'] = pred_rf
 
-        pred_sv = model_sv.predict(X)
-        pred_probasv = model_sv.predict_proba(X)[:,1]*100
-        df['proba_sv'] = pred_probasv
-        df['pred_sv'] = pred_sv
-
         tab_1.success("Random Forest Prediction Count")
         tab_1.write(df['pred_rf'].value_counts())
-        tab_1.success("support Vector Machine Prediction Count")
-        tab_1.write(df['pred_sv'].value_counts())
 
         tab_2.success("Display Resulting Dataframe")
         tab_2.dataframe(df)
 
         tab_1.success("Random Forest Prediction Bar Plot")
         fig = sns.countplot(data = df, x= "pred_rf")
-        plt.savefig('predicted_values.png')
-        tab_1.pyplot()
-
-        tab_1.success("Support Vector Machine Prediction Bar Plot")
-        fig = sns.countplot(data = df, x= "pred_sv")
         plt.savefig('predicted_values.png')
         tab_1.pyplot()
         @st.cache_data 
@@ -191,7 +170,7 @@ else :
         tab_2.success("Print Result as CSV file")
         tab_2.download_button("Download",csv,"Prediction.csv",'text/csv')
 
-        dfs = df[(df["Predict_rf"] == "Accepted") & (df["Predict_sv"] == "Accepted")]
+        dfs = df[df["Predict_rf"] == "Accepted"]
         conn = sqlite3.connect("user.db")
         cursor = conn.cursor()
         conn.commit()
@@ -209,8 +188,10 @@ else :
                         dt = pd.read_csv("dframe.csv")
                         jdt = pd.concat([dt, dfs], ignore_index=True)
                         jdt.drop_duplicates(inplace=True)
+                        ds = jdt.sort_values(by=['Probability_acceptance','Score','Age'], ascending=False)
+
                         jdt.to_csv("dframe.csv", header=False, index=False, mode= 'a')
-                        tab_3.write(jdt)
+                        tab_3.write(ds.head(rows))
                     else :
                         df.to_csv("dframe.csv", index=False)
                         tab_3.write(dfs)
@@ -226,4 +207,4 @@ else :
             if tab_3.button("Submit") :
                 cursor.execute("INSERT INTO user(username, password) VALUES(?, ?)",(username,password))
                 conn.commit()
-
+                    

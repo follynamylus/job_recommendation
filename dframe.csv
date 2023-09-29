@@ -1,0 +1,11 @@
+Name,ID,Age,Score,Certificate,Predict_rf,Predict_sv
+Surname Firstname,ID123FR,23,67,HND,Accepted,Accepted
+Surname Firstname,ID123FR,23,67,HND,Accepted,Accepted
+Surname Firstname,ID123FR,23,65,HND,Accepted,Accepted
+Surname Firstname,ID123FR,23,67,HND,Accepted,Accepted
+Surname Firstname,ID123FR,23,65,HND,Accepted,Accepted
+Surname Firstname,ID123FR,23,67,HND,Accepted,Accepted
+Surname Firstname,ID123FR,23,65,HND,Accepted,Accepted
+Surname Firstname,ID123FR,23,67,HND,Accepted,Accepted
+Surname Firstname,ID123FR,23,65,HND,Accepted,Accepted
+Surname Firstname,ID123FR,23,89,HND,Accepted,Accepted
